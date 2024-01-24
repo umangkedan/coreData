@@ -15,12 +15,13 @@ protocol TeacherSelectionDelegate: AnyObject {
 class TeacherTableViewController: UIViewController {
     
     var users : [Teacher] = []
-    
+   
     @IBOutlet weak var tabelView: UITableView!
     
     var firstName : String?
     var lastName : String?
     var subject : String?
+    
     let appDelegate = UIApplication.shared.delegate as? AppDelegate
     weak var delegate: TeacherSelectionDelegate?
     
@@ -61,6 +62,7 @@ class TeacherTableViewController: UIViewController {
 }
 
 extension TeacherTableViewController : UITableViewDelegate , UITableViewDataSource {
+    
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         users.count
     }
@@ -79,10 +81,25 @@ extension TeacherTableViewController : UITableViewDelegate , UITableViewDataSour
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         let selectedTeacher = users[indexPath.row]
-        delegate?.didSelectTeacher(selectedTeacher)
-        navigationController?.popViewController(animated: true)
-    }
-    
+            
+        if let studentSet = selectedTeacher.to_student as? Set<Student>,
+           !studentSet.isEmpty {
+               let studentNames = Array(studentSet).compactMap { $0.name }
+                
+                guard let studentListController = UIStoryboard(name: "Main", bundle: .main).instantiateViewController(withIdentifier: "listStudentController") as? ListStudentController else {
+                    return
+                }
+                studentListController.students = studentNames
+                self.navigationController?.pushViewController(studentListController, animated: true)
+                delegate?.didSelectTeacher(selectedTeacher)
+            } else {
+                let alert = UIAlertController(title: "No Students", message: "This teacher has no assigned students.", preferredStyle: .alert)
+                let ok = UIAlertAction(title: "OK", style: .cancel)
+                alert.addAction(ok)
+                self.present(alert, animated: true)
+            }
+        }
+
     func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
         if editingStyle == .delete {
             if let context = appDelegate?.persistentContainer.viewContext {
